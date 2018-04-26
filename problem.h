@@ -28,7 +28,6 @@ public:
 private:
     void gmatr();
     void hmatr();
-    void phimatr();
     void fmatr();
     bool iterationCheck();
     void lastResult();
@@ -48,7 +47,7 @@ private:
     std::vector<int> INDEX;
     std::vector<int> TYPE;
     std::vector<node> nodes;
-    std::vector<float> UB,B,UIN,F,PHI,DPHI,X;
+    std::vector<float> UB,B,UIN,F,DF,PHI,DPHI,X;
     std::vector<std::vector<float>> G,H,A;
     std::vector<Point> PM,PL,PIN,UPIN;
     bool singular=false,initialized=false;

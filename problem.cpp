@@ -151,11 +151,18 @@ void Problem::LoadFromFile(QString filename){
     }
     for(int i=0;i<N;i++){
         int curindex;
-        node currentNode;
-        float curU;
-        fscanf(f,"%d%f",&curindex,&curU);
-        currentNode.U=curU;
+        node currentNode=node();
+        float currentValue;
+        fscanf(f,"%d%f",&curindex,&currentValue);
         INDEX.push_back(curindex);
+        if(curindex==0){
+            if(TYPE[i]==0){
+                currentNode.U=currentValue;
+            }
+        }
+        else{
+            currentNode.Q=currentValue;
+        }
         nodes.push_back(currentNode);
     }
     fscanf(f,"%d",&InnerN);
@@ -199,19 +206,11 @@ void Problem::Solve(){
         hmatr();
         int minimumIterations=0;
         do{
-
-            if(initialized){
-                fmatr();
-                phimatr();
-            }
-            else{
-                phimatr();
-                fmatr();
-                initialized=true;
-            }
+        //TODO apo nodes
+            fmatr();
             abmatr();
             solveq();
-            reorder();
+            reorder();// update nodes
             minimumIterations++;
         }while(iterationCheck()||minimumIterations<5);
         uinter();
@@ -230,7 +229,7 @@ void Problem::UpdateResults(){
     btables[0]->blockSignals(true);
     innertable->blockSignals(true);
     for(int i=0;i<N;i++){
-        QTableWidgetItem *item= new QTableWidgetItem(QString::number(nodex[i].U));
+        QTableWidgetItem *item= new QTableWidgetItem(QString::number(nodes[i].U));
         btables[0]->setItem(i,3,item);
         item= new QTableWidgetItem(QString::number(nodes[i].Q));
         btables[0]->setItem(i,4,item);
@@ -309,46 +308,34 @@ void Problem::hmatr(){
 
 }
 
-void Problem::phimatr(){
-    if(initialized){
-        for(int i=0;i<N;i++){
-            if(INDEX[i]>1){
-                PHI[i]+=DPHI[i];
-            }
-        }
-    }
-    else{
-        DPHI=std::vector<float>(N,0);
-        PHI=std::vector<float>(N,0);
-
-        for(int i=0;i<N;i++){
-            if(INDEX[i]>1){
-                PHI[i]=initialphi;
-            }
-        }
-    }
-}
 
 void Problem::fmatr(){
     if(initialized){
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 // palia sun paragwgos
-                F[i]+=X[i]*(-Ia/C)*(exp((nodes[i].U-Phia)/Aa)/Aa+exp((Phia-nodes[i].U)/Ba)/Ba);
+                F[i]+=X[i]*DF[i];
+                DF[i]=(-Ia/C)*(exp((nodes[i].U-Phia)/Aa)/Aa+exp((Phia-nodes[i].U)/Ba)/Ba);
+
             }
             else if(TYPE[i]==2){
-                F[i]+=X[i]*(Ic/C)*(exp((nodes[i].U-Phic)/Ac)/Ac+exp((Phic-nodes[i].U)/Bc)/Bc);
+                F[i]+=X[i]*DF[i];
+                DF[i]=(Ic/C)*(exp((nodes[i].U-Phic)/Ac)/Ac+exp((Phic-nodes[i].U)/Bc)/Bc);
             }
         }
     }
     else{
+        initialized=true;
         F=std::vector<float>(N,0);
+        DF=std::vector<float>(N,0);
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 F[i]=(Ia/C)*(exp((Phia-initialPhiAnode)/Ba)-exp((initialPhiAnode-Phia)/Aa)); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
+                DF[i]=(-Ia/C)*(exp((initialPhiAnode-Phia)/Aa)/Aa+exp((Phia-initialPhiAnode)/Ba)/Ba);
             }
             else if(TYPE[i]==2){
                 F[i]=(-Ic/C)*(exp((initialPhiCathode-Phic)/Ac)-exp((Phic-initialPhiCathode)/Bc)); // cathode
+                DF[i]=(Ic/C)*(exp((initialPhiCathode-Phic)/Ac)/Ac+exp((Phic-initialPhiCathode)/Bc)/Bc);
             }
         }
     }
@@ -395,7 +382,7 @@ void Problem::abmatr(){
             case 1:
             case 2:
                 for(int i=0;i<N;i++)
-                    A[i][j]=-G[i][j]*F[i]+H[i][j]*PHI[i];
+                    A[i][j]=-G[i][j]*DF[i]+H[i][j];
                 break;
             }
 
@@ -419,16 +406,17 @@ void Problem::abmatr(){
             if(INDEX[j]==0){
                 switch(TYPE[j]){
                 case 0:
+                    B[i]-= (H[i][j] * nodes[j].U);
                     break;
                 case 1:
                 case 2:
-                    B[i]+=G[i][j]*F[i]+H[i][j]*PHI[i];
+                    B[i]+=G[i][j]*F[i]-H[i][j]*nodes[i].U;
                     break;
                 }
-                B[i]-= (H[i][j] * nodes[j].U);
+
             }
             else if(INDEX[j]==1){
-               B[i]+= (G[i][j] * nodes[j].U);
+               B[i]+= (G[i][j] * nodes[j].Q);
             }
         }
 
@@ -444,6 +432,7 @@ bool Problem::legs(){
     int imax;
     float factor;
     float amax, atemp;
+    X=std::vector<float>(N,0);
     for(int j=0; j<N; j++){
         /*
         for(ii=0;ii<N;ii++){
@@ -483,7 +472,7 @@ bool Problem::legs(){
                 for(int jx=j;jx<N; jx++){
                     A[i][jx]-=factor*A[j][jx];
                 }
-                nodes[i].Q-=factor*B[j];
+                X[i]-=factor*B[j];
             }
         }
         else{
