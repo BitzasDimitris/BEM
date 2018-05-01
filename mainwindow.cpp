@@ -128,7 +128,8 @@ void MainWindow::on_Cell_Changed(int row,int col){
         problem->UpdateBoundaryPoint(row,ui->BoundaryTable->item(row,0)->text().toFloat(),
                                      ui->BoundaryTable->item(row,1)->text().toFloat(),
                                      ui->BoundaryTable->item(row,2)->text().toInt(),
-                                     ui->BoundaryTable->item(row,3)->text().toFloat());
+                                     ui->BoundaryTable->item(row,3)->text().toInt(),
+                                     ui->BoundaryTable->item(row,4)->text().toFloat());
     }
     else{
         problem->UpdateInnerPoint(row,ui->InnerTable->item(row,0)->text().toFloat(),

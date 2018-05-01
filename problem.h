@@ -21,7 +21,7 @@ public:
     void DeleteInnerPoint(int index);
     void AddBoundaryPoint(float x,float y);
     void AddInnerPoint(float x,float y);
-    void UpdateBoundaryPoint(int index, float x,float y,int Known,float ub);
+    void UpdateBoundaryPoint(int index, float x,float y,int Known,int type,float ub);
     void UpdateInnerPoint(int index,float x, float y);
     void Solve();
     void Clear();

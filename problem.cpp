@@ -14,6 +14,7 @@ void Problem::Clear(){
     PL.clear();
     PIN.clear();
     INDEX.clear();
+    TYPE.clear();
     nodes.clear();
     UIN.clear();
     G.clear();
@@ -38,8 +39,9 @@ void Problem::AddBoundaryTable(QTableWidget *table){
     btables[btables.size()-1]->setHorizontalHeaderItem(0,new QTableWidgetItem("X"));
     btables[btables.size()-1]->setHorizontalHeaderItem(1,new QTableWidgetItem("Y"));
     btables[btables.size()-1]->setHorizontalHeaderItem(2,new QTableWidgetItem("Known"));
-    btables[btables.size()-1]->setHorizontalHeaderItem(3,new QTableWidgetItem("U"));
-    btables[btables.size()-1]->setHorizontalHeaderItem(4,new QTableWidgetItem("Q"));
+    btables[btables.size()-1]->setHorizontalHeaderItem(3,new QTableWidgetItem("Type"));
+    btables[btables.size()-1]->setHorizontalHeaderItem(4,new QTableWidgetItem("U"));
+    btables[btables.size()-1]->setHorizontalHeaderItem(5,new QTableWidgetItem("Q"));
 }
 
 void Problem::AddInnerTable(QTableWidget *table){
@@ -55,6 +57,9 @@ void Problem::AddInnerTable(QTableWidget *table){
 
 void Problem::DeleteBoundaryPoint(int index){
     PL.erase(PL.begin()+index);
+    INDEX.erase(INDEX.begin()+index);
+    TYPE.erase(INDEX.begin()+index);
+    nodes.erase(nodes.begin()+index);
     N--;
     btables[0]->removeRow(index);
     emit UpdateBoundaryPoints(PL);
@@ -71,16 +76,20 @@ void Problem::AddBoundaryPoint(float x,float y){
     N++;
     PL.push_back(Point(x,y));
     INDEX.push_back(0);
+    TYPE.push_back(0);
     nodes.push_back(node());
     btables[0]->blockSignals(true);
     btables[0]->setRowCount(N);
     btables[0]->setItem(N-1,0,new QTableWidgetItem(QString::number(PL[N-1].x)));
     btables[0]->setItem(N-1,1,new QTableWidgetItem(QString::number(PL[N-1].y)));
-    btables[0]->setItem(N-1,2,new QTableWidgetItem(QString::number(0)));
+    QTableWidgetItem *item= new QTableWidgetItem();
+    item->setCheckState(Qt::Unchecked);
+    btables[0]->setItem(N-1,2,item);
     btables[0]->setItem(N-1,3,new QTableWidgetItem(QString::number(0)));
-    QTableWidgetItem* item= new QTableWidgetItem();
+    btables[0]->setItem(N-1,4,new QTableWidgetItem(QString::number(0)));
+    item= new QTableWidgetItem();
     item->setFlags(item->flags()^Qt::ItemIsEditable);
-    btables[0]->setItem(N-1,4,item);
+    btables[0]->setItem(N-1,5,item);
     btables[0]->blockSignals(false);
     emit UpdateBoundaryPoints(PL);
 
@@ -106,10 +115,11 @@ void Problem::AddInnerPoint(float x,float y){
 }
 
 
-void Problem::UpdateBoundaryPoint(int index, float x,float y,int Known,float u){
+void Problem::UpdateBoundaryPoint(int index, float x,float y,int Known,int type,float u){
     PL[index].x=x;
     PL[index].y=y;
     INDEX[index]=Known;
+    TYPE[index]=type;
     nodes[index].U=u;
     emit UpdateBoundaryPoints(PL);
 }
@@ -131,7 +141,7 @@ void Problem::SaveToFile(QString filename){
             fprintf(f,"%f\n%f\n",PL[i].x,PL[i].y);
         }
         for(int i=0;i<N;i++){
-            fprintf(f,"%d\n%f\n",INDEX[i],nodes[i].U);
+            fprintf(f,"%d\n%d\n%f\n",INDEX[i],TYPE[i],nodes[i].U);
         }
         fprintf(f,"%d\n",InnerN);
         for(int i=0;i<InnerN;i++){
@@ -150,13 +160,14 @@ void Problem::LoadFromFile(QString filename){
         fscanf(f,"%f%f",&PL[i].x,&PL[i].y);
     }
     for(int i=0;i<N;i++){
-        int curindex;
+        int curindex,curType;
         node currentNode=node();
         float currentValue;
-        fscanf(f,"%d%f",&curindex,&currentValue);
+        fscanf(f,"%d%f",&curindex,&curType,&currentValue);
         INDEX.push_back(curindex);
+        TYPE.push_back(curType);
         if(curindex==0){
-            if(TYPE[i]==0){
+            if(curType==0){
                 currentNode.U=currentValue;
             }
         }
@@ -188,11 +199,18 @@ void Problem::LoadFromFile(QString filename){
     for(int i=0;i<N;i++){
         btables[0]->setItem(i,0,new QTableWidgetItem(QString::number(PL[i].x)));
         btables[0]->setItem(i,1,new QTableWidgetItem(QString::number(PL[i].y)));
-        btables[0]->setItem(i,2,new QTableWidgetItem(QString::number(INDEX[i])));
-        btables[0]->setItem(i,3,new QTableWidgetItem(QString::number(nodes[i].U)));
-        QTableWidgetItem* item= new QTableWidgetItem();
+        QTableWidgetItem * item= new QTableWidgetItem();
+        if(INDEX[i]==0){
+            item->setCheckState(Qt::Checked);
+        }
+        else{
+            item->setCheckState(Qt::Unchecked);
+        }
+        btables[0]->setItem(i,3,new QTableWidgetItem(QString::number(TYPE[i])));
+        btables[0]->setItem(i,4,new QTableWidgetItem(QString::number(nodes[i].U)));
+        item= new QTableWidgetItem();
         item->setFlags(item->flags()^Qt::ItemIsEditable);
-        btables[0]->setItem(i,4,item);
+        btables[0]->setItem(i,5,item);
     }
     btables[0]->blockSignals(false);
     emit UpdateBoundaryPoints(PL);
