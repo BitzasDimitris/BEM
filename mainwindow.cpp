@@ -127,7 +127,7 @@ void MainWindow::on_Cell_Changed(int row,int col){
     if(ui->tabWidget->currentIndex()==0){
         problem->UpdateBoundaryPoint(row,ui->BoundaryTable->item(row,0)->text().toFloat(),
                                      ui->BoundaryTable->item(row,1)->text().toFloat(),
-                                     ui->BoundaryTable->item(row,2)->text().toInt(),
+                                     ui->BoundaryTable->item(row,2)->checkState()==Qt::Checked?0:1,
                                      ui->BoundaryTable->item(row,3)->text().toInt(),
                                      ui->BoundaryTable->item(row,4)->text().toFloat());
     }

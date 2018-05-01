@@ -3,6 +3,7 @@
 #define PI 3.14159265358979323846
 #include <vector>
 #include <QTableWidget>
+#include <QDebug>
 #include "point.h"
 #include "math.h"
 #include "node.h"
@@ -30,7 +31,6 @@ private:
     void hmatr();
     void fmatr();
     bool iterationCheck();
-    void lastResult();
     void abmatr();
     void solveq();
     bool legs();
@@ -43,11 +43,11 @@ private:
     float dalpha(Point p1,Point p2,Point p3);
 
     int N=0,InnerN=0;
-    float initialPhiAnode=0.1f,initialPhiCathode=-0.1,Ia=1,Ic=1,Phia=-0.5f,Phic=0.5f,Ba=0.05f,Bc=0.05f,Aa=0.05f,Ac=0.05f,C=10.0f,e=0.0001;
+    float initialPhiAnode=0.1f,initialPhiCathode=-0.1,Ia=1,Ic=1,Phia=0.5f,Phic=-0.5f,Ba=0.05f,Bc=0.05f,Aa=0.05f,Ac=0.05f,C=10.0f,e=0.0001;
     std::vector<int> INDEX;
     std::vector<int> TYPE;
     std::vector<node> nodes;
-    std::vector<float> UB,B,UIN,F,DF,PHI,DPHI,X;
+    std::vector<float> UB,B,UIN,F,DF,X;
     std::vector<std::vector<float>> G,H,A;
     std::vector<Point> PM,PL,PIN,UPIN;
     bool singular=false,initialized=false;

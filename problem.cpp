@@ -35,7 +35,7 @@ void Problem::Clear(){
 
 void Problem::AddBoundaryTable(QTableWidget *table){
     btables.push_back(table);
-    btables[btables.size()-1]->setColumnCount(5);
+    btables[btables.size()-1]->setColumnCount(6);
     btables[btables.size()-1]->setHorizontalHeaderItem(0,new QTableWidgetItem("X"));
     btables[btables.size()-1]->setHorizontalHeaderItem(1,new QTableWidgetItem("Y"));
     btables[btables.size()-1]->setHorizontalHeaderItem(2,new QTableWidgetItem("Known"));
@@ -163,7 +163,7 @@ void Problem::LoadFromFile(QString filename){
         int curindex,curType;
         node currentNode=node();
         float currentValue;
-        fscanf(f,"%d%f",&curindex,&curType,&currentValue);
+        fscanf(f,"%d%d%f",&curindex,&curType,&currentValue);
         INDEX.push_back(curindex);
         TYPE.push_back(curType);
         if(curindex==0){
@@ -206,6 +206,7 @@ void Problem::LoadFromFile(QString filename){
         else{
             item->setCheckState(Qt::Unchecked);
         }
+        btables[0]->setItem(i,2,item);
         btables[0]->setItem(i,3,new QTableWidgetItem(QString::number(TYPE[i])));
         btables[0]->setItem(i,4,new QTableWidgetItem(QString::number(nodes[i].U)));
         item= new QTableWidgetItem();
@@ -229,14 +230,15 @@ void Problem::Solve(){
             abmatr();
             solveq();
             reorder();// update nodes
+            if(singular){
+                emit Error("System is Singular "+QString::number(minimumIterations));
+            }
             minimumIterations++;
         }while(iterationCheck()||minimumIterations<5);
         uinter();
         deriv();
         UpdateResults();
-        if(singular){
-            emit Error("System is Singular");
-        }
+
     }
     else{
         emit Error("Insufficient Data to Solve");
@@ -248,9 +250,9 @@ void Problem::UpdateResults(){
     innertable->blockSignals(true);
     for(int i=0;i<N;i++){
         QTableWidgetItem *item= new QTableWidgetItem(QString::number(nodes[i].U));
-        btables[0]->setItem(i,3,item);
-        item= new QTableWidgetItem(QString::number(nodes[i].Q));
         btables[0]->setItem(i,4,item);
+        item= new QTableWidgetItem(QString::number(nodes[i].Q));
+        btables[0]->setItem(i,5,item);
     }
 
     for(int i=0;i<InnerN;i++){
@@ -333,12 +335,16 @@ void Problem::fmatr(){
             if(TYPE[i]==1){
                 // palia sun paragwgos
                 F[i]+=X[i]*DF[i];
+                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=(-Ia/C)*(exp((nodes[i].U-Phia)/Aa)/Aa+exp((Phia-nodes[i].U)/Ba)/Ba);
+                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
 
             }
             else if(TYPE[i]==2){
                 F[i]+=X[i]*DF[i];
+                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=(Ic/C)*(exp((nodes[i].U-Phic)/Ac)/Ac+exp((Phic-nodes[i].U)/Bc)/Bc);
+                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
     }
@@ -349,11 +355,15 @@ void Problem::fmatr(){
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 F[i]=(Ia/C)*(exp((Phia-initialPhiAnode)/Ba)-exp((initialPhiAnode-Phia)/Aa)); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
+                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=(-Ia/C)*(exp((initialPhiAnode-Phia)/Aa)/Aa+exp((Phia-initialPhiAnode)/Ba)/Ba);
+                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
             else if(TYPE[i]==2){
                 F[i]=(-Ic/C)*(exp((initialPhiCathode-Phic)/Ac)-exp((Phic-initialPhiCathode)/Bc)); // cathode
+                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=(Ic/C)*(exp((initialPhiCathode-Phic)/Ac)/Ac+exp((Phic-initialPhiCathode)/Bc)/Bc);
+                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
     }
@@ -362,22 +372,19 @@ void Problem::fmatr(){
 bool Problem::iterationCheck(){
     bool flag=false;
     for(int i=0;i<N;i++){
-        if(INDEX[i]>1){
-            if(DPHI[i]>=e){
+        if(INDEX[i]==0&&TYPE[i]>=1){
+            if(X[i]>=e){
                 flag=true;
             }
         }
     }
+    if(flag){
+        qDebug("new iteration");
+    }
     return flag;
 }
 
-void Problem::lastResult(){
-    for(int i=0;i<N;i++){
-        if(INDEX[i]>1){
-            nodes[i].U=PHI[i];
-        }
-    }
-}
+
 
 void Problem::abmatr(){
 
@@ -490,7 +497,7 @@ bool Problem::legs(){
                 for(int jx=j;jx<N; jx++){
                     A[i][jx]-=factor*A[j][jx];
                 }
-                X[i]-=factor*B[j];
+                B[i]-=factor*B[j];
             }
         }
         else{
@@ -504,8 +511,9 @@ bool Problem::legs(){
         for(int k=j+1;k<N; k++){
             atemp+=A[j][k]*B[k];
         }
-        B[j]=(B[j]-atemp)/A[j][j];
+        X[j]=(B[j]-atemp)/A[j][j];
     }
+
     return false;
 }
 
@@ -514,7 +522,6 @@ void Problem::reorder(){
 
     /* This function places the values of the potential u in matrix UB
       and the values of the flux are stored in UNB */
-    DPHI.clear();
     for(int i=0;i<N;i++){
         if(INDEX[i]==1){
             /* Swap the values of the potential u and the flux */
@@ -528,7 +535,6 @@ void Problem::reorder(){
             case 1:
             case 2:
                 nodes[i].U+=X[i];// Anodos/Kathodos
-                DPHI.push_back(X[i]);
                 break;
             }
         }
