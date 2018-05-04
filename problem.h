@@ -30,6 +30,10 @@ private:
     void gmatr();
     void hmatr();
     void fmatr();
+    float anode(float U);
+    float cathode(float U);
+    float anodeDF(float U);
+    float cathodeDF(float U);
     bool iterationCheck();
     void abmatr();
     void solveq();
@@ -43,7 +47,7 @@ private:
     float dalpha(Point p1,Point p2,Point p3);
 
     int N=0,InnerN=0;
-    float initialPhiAnode=0.1f,initialPhiCathode=-0.1,Ia=1,Ic=1,Phia=0.5f,Phic=-0.5f,Ba=0.05f,Bc=0.05f,Aa=0.05f,Ac=0.05f,C=10.0f,e=0.0001;
+    float initialPhiAnode=0.1f,initialPhiCathode=-0.1,Ia=1,Ic=1,Phia=-0.5f,Phic=0.5f,Ba=0.05f,Bc=0.05f,Aa=0.05f,Ac=0.05f,C=10.0f,e=0.0001;
     std::vector<int> INDEX;
     std::vector<int> TYPE;
     std::vector<node> nodes;

@@ -334,16 +334,16 @@ void Problem::fmatr(){
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 // palia sun paragwgos
-                F[i]+=X[i]*DF[i];
+                F[i]=anode(nodes[i].U);
                 qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
-                DF[i]=(-Ia/C)*(exp((nodes[i].U-Phia)/Aa)/Aa+exp((Phia-nodes[i].U)/Ba)/Ba);
+                DF[i]=anodeDF(nodes[i].U);
                 qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
 
             }
             else if(TYPE[i]==2){
-                F[i]+=X[i]*DF[i];
+                F[i]=cathode(nodes[i].U);
                 qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
-                DF[i]=(Ic/C)*(exp((nodes[i].U-Phic)/Ac)/Ac+exp((Phic-nodes[i].U)/Bc)/Bc);
+                DF[i]=cathodeDF(nodes[i].U);
                 qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
@@ -354,19 +354,36 @@ void Problem::fmatr(){
         DF=std::vector<float>(N,0);
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
-                F[i]=(Ia/C)*(exp((Phia-initialPhiAnode)/Ba)-exp((initialPhiAnode-Phia)/Aa)); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
+                F[i]=anode(initialPhiAnode); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
                 qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
-                DF[i]=(-Ia/C)*(exp((initialPhiAnode-Phia)/Aa)/Aa+exp((Phia-initialPhiAnode)/Ba)/Ba);
+                DF[i]=anodeDF(nodes[i].U);
                 qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
             else if(TYPE[i]==2){
-                F[i]=(-Ic/C)*(exp((initialPhiCathode-Phic)/Ac)-exp((Phic-initialPhiCathode)/Bc)); // cathode
+                F[i]=cathode(initialPhiCathode); // cathode
                 qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
-                DF[i]=(Ic/C)*(exp((initialPhiCathode-Phic)/Ac)/Ac+exp((Phic-initialPhiCathode)/Bc)/Bc);
+                DF[i]=cathodeDF(nodes[i].U);
                 qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
     }
+}
+
+
+float Problem::anode(float U){
+    return (-Ia/C)*(exp(-(Phia-U)/Aa)-exp((Phia-U)/Ba));
+}
+
+float Problem::cathode(float U){
+    return (Ic/C)*(exp((U-Phic)/Ac)-exp((Phic-U)/Bc));
+}
+
+float Problem::anodeDF(float U){
+    return (-Ia/C)*((1/Aa)*exp((-1/Aa)*(Phia-U))+(1/Ba)*exp((1/Ba)*(Phia-U)));
+}
+
+float Problem::cathodeDF(float U){
+    return (Ic/C)*((1/Bc)*exp((1/Bc)*(Phic-U))+(-1/Ac)*exp((-1/Ac)*(Phic-U)));
 }
 
 bool Problem::iterationCheck(){
@@ -533,8 +550,12 @@ void Problem::reorder(){
                 nodes[i].Q=X[i];// Gnwsto U
                 break;
             case 1:
+                nodes[i].U+=X[i];// Anodos
+                nodes[i].Q=anode(nodes[i].U);
+                break;
             case 2:
-                nodes[i].U+=X[i];// Anodos/Kathodos
+                nodes[i].U+=X[i];// Kathodos
+                nodes[i].Q=cathode(nodes[i].U);
                 break;
             }
         }
