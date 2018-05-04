@@ -335,16 +335,12 @@ void Problem::fmatr(){
             if(TYPE[i]==1){
                 // palia sun paragwgos
                 F[i]=anode(nodes[i].U);
-                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=anodeDF(nodes[i].U);
-                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
 
             }
             else if(TYPE[i]==2){
                 F[i]=cathode(nodes[i].U);
-                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=cathodeDF(nodes[i].U);
-                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
     }
@@ -355,15 +351,11 @@ void Problem::fmatr(){
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 F[i]=anode(initialPhiAnode); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
-                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=anodeDF(nodes[i].U);
-                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
             else if(TYPE[i]==2){
                 F[i]=cathode(initialPhiCathode); // cathode
-                qDebug()<<QString::number(i)+" F : "+QString::number(F[i]);
                 DF[i]=cathodeDF(nodes[i].U);
-                qDebug()<<QString::number(i)+" DF : "+QString::number(DF[i]);
             }
         }
     }
