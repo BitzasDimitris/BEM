@@ -234,7 +234,7 @@ void Problem::Solve(){
                 emit Error("System is Singular "+QString::number(minimumIterations));
             }
             minimumIterations++;
-        }while(iterationCheck()||minimumIterations<5);
+        }while(iterationCheck()&&minimumIterations<5);
         uinter();
         deriv();
         UpdateResults();
@@ -336,11 +336,13 @@ void Problem::fmatr(){
                 // palia sun paragwgos
                 F[i]=anode(nodes[i].U);
                 DF[i]=anodeDF(nodes[i].U);
+                qDebug()<<F[i]<<" , "<<DF[i];
 
             }
             else if(TYPE[i]==2){
                 F[i]=cathode(nodes[i].U);
                 DF[i]=cathodeDF(nodes[i].U);
+                qDebug()<<F[i]<<" , "<<DF[i];
             }
         }
     }
@@ -352,10 +354,12 @@ void Problem::fmatr(){
             if(TYPE[i]==1){
                 F[i]=anode(initialPhiAnode); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
                 DF[i]=anodeDF(nodes[i].U);
+                qDebug()<<F[i]<<" , "<<DF[i];
             }
             else if(TYPE[i]==2){
                 F[i]=cathode(initialPhiCathode); // cathode
                 DF[i]=cathodeDF(nodes[i].U);
+                qDebug()<<F[i]<<" , "<<DF[i];
             }
         }
     }
