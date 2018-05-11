@@ -1,4 +1,8 @@
 #include "problem.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include "lu_decomposition.hpp"
 
 Problem::Problem(QWidget *parent)
 {
@@ -155,9 +159,13 @@ void Problem::LoadFromFile(QString filename){
     FILE* f;
     f=fopen(filename.toStdString().c_str(),"r");
     fscanf(f,"%d",&N);
+
+    std::ofstream ndcoord("ndcoord.txt");
+
     PL=std::vector<Point>(N);
     for(int i=0;i<N;i++){
         fscanf(f,"%f%f",&PL[i].x,&PL[i].y);
+        ndcoord<<i+1<<"  "<<PL[i].x<<"  "<<PL[i].y<<"\n";
     }
     for(int i=0;i<N;i++){
         int curindex,curType;
@@ -228,13 +236,18 @@ void Problem::Solve(){
         //TODO apo nodes
             fmatr();
             abmatr();
+
             solveq();
             reorder();// update nodes
             if(singular){
                 emit Error("System is Singular "+QString::number(minimumIterations));
             }
             minimumIterations++;
-        }while(iterationCheck()&&minimumIterations<5);
+
+
+
+
+        }while(iterationCheck()&&minimumIterations<50);
         uinter();
         deriv();
         UpdateResults();
@@ -353,12 +366,12 @@ void Problem::fmatr(){
         for(int i=0;i<N;i++){
             if(TYPE[i]==1){
                 F[i]=anode(initialPhiAnode); //anode  ia*(e^((Φα-Φ)/βα)-e^(-(Φα-Φ)/αα))
-                DF[i]=anodeDF(nodes[i].U);
+                DF[i]=anodeDF(initialPhiAnode);
                 qDebug()<<F[i]<<" , "<<DF[i];
             }
             else if(TYPE[i]==2){
                 F[i]=cathode(initialPhiCathode); // cathode
-                DF[i]=cathodeDF(nodes[i].U);
+                DF[i]=cathodeDF(initialPhiCathode);
                 qDebug()<<F[i]<<" , "<<DF[i];
             }
         }
@@ -367,19 +380,64 @@ void Problem::fmatr(){
 
 
 float Problem::anode(float U){
-    return (-Ia/C)*(exp(-(Phia-U)/Aa)-exp((Phia-U)/Ba));
+
+    float coef1_a = -Ia / C;
+    float coef1_c =  Ic / C;
+    float coef2_a = -1.0 / Aa;
+    float coef3_a =  1.0 / Ba;
+    float coef2_c = -1.0 / Ac;
+    float coef3_c =  1.0 / Bc;
+
+    float eta_a = Phia - U;
+    float eta_c = Phic - U;
+
+    return coef1_a * (exp(coef2_a * eta_a) - exp(coef3_a * eta_a));
 }
 
 float Problem::cathode(float U){
-    return (Ic/C)*(exp((U-Phic)/Ac)-exp((Phic-U)/Bc));
+
+    float coef1_a = -Ia / C;
+    float coef1_c =  Ic / C;
+    float coef2_a = -1.0 / Aa;
+    float coef3_a =  1.0 / Ba;
+    float coef2_c = -1.0 / Ac;
+    float coef3_c =  1.0 / Bc;
+
+    float eta_a = Phia - U;
+    float eta_c = Phic - U;
+
+
+    return coef1_c * (exp(coef3_c * eta_c) - exp(coef2_c * eta_c));
 }
 
 float Problem::anodeDF(float U){
-    return (-Ia/C)*((1/Aa)*exp((-1/Aa)*(Phia-U))+(1/Ba)*exp((1/Ba)*(Phia-U)));
+
+    float coef1_a = -Ia / C;
+    float coef1_c =  Ic / C;
+    float coef2_a = -1.0 / Aa;
+    float coef3_a =  1.0 / Ba;
+    float coef2_c = -1.0 / Ac;
+    float coef3_c =  1.0 / Bc;
+
+    float eta_a = Phia - U;
+    float eta_c = Phic - U;
+
+    return coef1_a * (-coef2_a * exp(coef2_a * eta_a) + coef3_a * exp(coef3_a * eta_a));
 }
 
 float Problem::cathodeDF(float U){
-    return (Ic/C)*((1/Bc)*exp((1/Bc)*(Phic-U))+(-1/Ac)*exp((-1/Ac)*(Phic-U)));
+
+    float coef1_a = -Ia / C;
+    float coef1_c =  Ic / C;
+    float coef2_a = -1.0 / Aa;
+    float coef3_a =  1.0 / Ba;
+    float coef2_c = -1.0 / Ac;
+    float coef3_c =  1.0 / Bc;
+
+    float eta_a = Phia - U;
+    float eta_c = Phic - U;
+
+    return coef1_c * (-coef3_c * exp(coef3_c * eta_c) + coef2_c * exp(coef2_c * eta_c));
 }
 
 bool Problem::iterationCheck(){
@@ -406,126 +464,207 @@ void Problem::abmatr(){
 
     /* A matrix */
     A=std::vector<std::vector<float>>(N,std::vector<float>(N));// orizw tomegethostou pinaka A = NxN
-    for(int j=0;j<N;j++){
+    B=std::vector<float>(N,0.0);
+
+
+    std::ofstream hmat("hmat.txt");
+    std::ofstream gmat("gmat.txt");
+    std::ofstream amat("amat.txt");
+    std::ofstream pcurve_der("pcurve_der.txt");
+    std::ofstream pcurve("pcurve.txt");
+
+    for (int i = 0; i < N; i++) {
+        if (TYPE[i] == 1) {
+            pcurve<<initialPhiAnode<<"   "<<F[i]<<"\n";
+            pcurve_der<<initialPhiAnode<<"   "<<DF[i]<<"\n";
+        } else if (TYPE[i] == 2) {
+            pcurve<<initialPhiCathode<<"   "<<F[i]<<"\n";
+            pcurve_der<<initialPhiCathode<<"   "<<DF[i]<<"\n";
+        }
+    }
+
+
+    for(int i=0;i<N;i++){
 
         /* INDEX(j)=0 --> flux: unknown boundary value ??????????????????????
            INDEX(j)=1 --> potential: unknown boundary ????????????? grammi 175 swsto????????
            UB: the matrix that contains the known boundary conditions*/
-        if(INDEX[j]==0){
-            switch(TYPE[j]){
-            case 0:
-                for(int i=0;i<N;i++)
-                    A[i][j]=-G[i][j];
-                break;
-            case 1:
-            case 2:
-                for(int i=0;i<N;i++)
-                    A[i][j]=-G[i][j]*DF[i]+H[i][j];
-                break;
-            }
-
-        }
-        else if(INDEX[j]==1){
-            for(int i=0;i<N;i++)
-                A[i][j]=H[i][j];
-        }
-    }
-
-    /* The elements of B matrix will be stored in UNB */
-
-    for(int i=0;i<N;i++){
-        B.push_back(0);
-
-        /* INDEX(j)=0 --> potential: known boundary condition
-           INDEX(j)=1 --> flux: known boundary contition */
-
-        for(int j=0;j<N;j++){
+        for(int j=0;j<N;j++) {
 
             if(INDEX[j]==0){
-                switch(TYPE[j]){
-                case 0:
+
+                if (TYPE[j] == 0) {
+
+                    A[i][j]=-G[i][j];
+
                     B[i]-= (H[i][j] * nodes[j].U);
-                    break;
-                case 1:
-                case 2:
-                    B[i]+=G[i][j]*F[i]-H[i][j]*nodes[i].U;
-                    break;
+
+                } else if (TYPE[j] == 1) {
+
+                    A[i][j]=-G[i][j]*DF[j]+H[i][j];
+
+                    B[i]+=G[i][j]*F[j]-H[i][j]*nodes[j].U;
+
+                } else if (TYPE[j] == 2) {
+
+                    A[i][j]=-G[i][j]*DF[j]+H[i][j];
+
+                    B[i]+=G[i][j]*F[j]-H[i][j]*nodes[j].U;
+
+                } else {
+                    std::cout<<"error"<<__FILE__<<"  "<<__LINE__;
                 }
 
             }
             else if(INDEX[j]==1){
-               B[i]+= (G[i][j] * nodes[j].Q);
+                    A[i][j]=H[i][j];
+
+                    B[i]+= (G[i][j] * nodes[j].Q);
+
             }
+
+
+
         }
 
     }
+
+    for(int i=0;i<N;i++){
+        for(int j=0;j<N;j++){
+            hmat<<std::scientific<<H[i][j]<<"   ";
+            gmat<<std::scientific<<G[i][j]<<"   ";
+            amat<<std::scientific<<A[i][j]<<"   ";
+        }
+        hmat<<"\n";
+        gmat<<"\n";
+        amat<<"\n";
+    }
+
+
 }
 
 void Problem::solveq(){
     singular=legs();
+
+    //singular = ludcmp();
+}
+
+
+void Problem::solveq_lu(){
+
+    singular = ludcmp();
+
+}
+
+bool Problem::ludcmp(){
+
+    std::vector<float> amat_aux(N*N,0.0);
+    std::vector<float> X(N,0.0);
+
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            amat_aux[i*N + j]= A[i][j];
+        }
+    }
+
+    decompose(amat_aux, N);
+
+    solv(amat_aux,B,N);
+
+    for (int i = 0; i < N; i++) X[i] = B[i];
+
+    return true;
 }
 
 
 bool Problem::legs(){
-    int imax;
-    float factor;
-    float amax, atemp;
+    //int imax;
+    //float factor;
+    //float amax, atemp;
     X=std::vector<float>(N,0);
-    for(int j=0; j<N; j++){
-        /*
-        for(ii=0;ii<N;ii++){
-            for(jj=0;jj<N;jj++){
-                printf("%f,",a[ii*N+jj]);
-            }
-            printf("\n");
-        }
-        //*/
-        amax=0.0;
-        for(int i=j;i<N; i++){
-            if(fabs(amax)<fabs(A[i][j])){
-                amax=A[i][j];
-                imax=i;
-            }
-        }
-        if(fabs(amax)==0.0){
-            return true ;
-        }
-        //allazw grammh j me imax an den einai isa
-        if(j!=imax){
-            for(int k=j;k<N; k++){
-                atemp=A[j][k];
-                A[j][k]=A[imax][k];
-                A[imax][k]=atemp;
-            }
-            atemp=B[imax];
-            B[imax]=B[j];
-            B[j]=atemp;
-        }
+    //for(int j=0; j<N; j++){
+    //    /*
+    //    for(ii=0;ii<N;ii++){
+    //        for(jj=0;jj<N;jj++){
+    //            printf("%f,",a[ii*N+jj]);
+    //        }
+    //        printf("\n");
+    //    }
+    //    */
+    //    amax=0.0;
+    //    for(int i=j;i<N; i++){
+    //        if(fabs(amax)<fabs(A[i][j])){
+    //            amax=A[i][j];
+    //            imax=i;
+    //        }
+    //    }
+    //    if(fabs(amax)==0.0){
+    //        return true ;
+    //    }
+    //    // allazw grammh j me imax an den einai isa
+    //    if(j!=imax){
+    //        for(int k=j;k<N; k++){
+    //            atemp=A[j][k];
+    //            A[j][k]=A[imax][k];
+    //            A[imax][k]=atemp;
+    //        }
+    //        atemp=B[imax];
+    //        B[imax]=B[j];
+    //        B[j]=atemp;
+    //    }
+    //
+    //
+    //    if (j!=N){
+    //        //apaloifh
+    //        for(int i=j+1; i<N; i++){
+    //            factor=A[i][j]/amax;
+    //            for(int jx=j;jx<N; jx++){
+    //                A[i][jx]-=factor*A[j][jx];
+    //            }
+    //            B[i]-=factor*B[j];
+    //        }
+    //    }
+    //    else{
+    //        break;
+    //    }
+    //}
 
 
-        if (j!=N){
-            //apaloifh
-            for(int i=j+1; i<N; i++){
-                factor=A[i][j]/amax;
-                for(int jx=j;jx<N; jx++){
-                    A[i][jx]-=factor*A[j][jx];
-                }
-                B[i]-=factor*B[j];
-            }
-        }
-        else{
-            break;
+    //for(int j=N-1;j>=0;j--){
+    //    atemp=0;
+    //    for(int k=j+1;k<N; k++){
+    //        atemp+=A[j][k]*B[k];
+    //    }
+    //    X[j]=(B[j]-atemp)/A[j][j];
+    //}
+
+    std::vector<float> amat_aux(N*N,0.0);
+
+    for(int i = 0; i < N; i++) {
+        for(int j = 0; j < N; j++) {
+            amat_aux[i*N + j]= A[i][j];
         }
     }
 
+    std::ofstream amat_auxiliary("amat_auxiliary.txt");
 
-    for(int j=N-1;j>=0;j--){
-        atemp=0;
-        for(int k=j+1;k<N; k++){
-            atemp+=A[j][k]*B[k];
+    for(int i=0;i<N;i++){
+        for(int j=0;j<N;j++){
+            amat_auxiliary<<std::scientific<<amat_aux[i*N + j]<<"   ";
         }
-        X[j]=(B[j]-atemp)/A[j][j];
+        amat_auxiliary<<"\n";
     }
+
+
+    std::ofstream bmatr("bmatr.txt");
+
+    for(int i=0;i<N;i++) bmatr<<std::scientific<<B[i]<<"\n";
+
+    decompose(amat_aux, N);
+    solv(amat_aux,B,N);
+
+    for (int i = 0; i < N; i++) X[i] = B[i];
+
 
     return false;
 }
@@ -535,6 +674,11 @@ void Problem::reorder(){
 
     /* This function places the values of the potential u in matrix UB
       and the values of the flux are stored in UNB */
+
+    std::ofstream xmatr("xmatr.txt");
+
+    for(int i=0;i<N;i++) xmatr<<std::scientific<<X[i]<<"\n";
+
     for(int i=0;i<N;i++){
         if(INDEX[i]==1){
             /* Swap the values of the potential u and the flux */

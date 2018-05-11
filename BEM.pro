@@ -30,7 +30,8 @@ SOURCES += \
     glview.cpp \
     problem.cpp \
     pointinput.cpp \
-    node.cpp
+    node.cpp \
+    lu_decomposition.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -38,7 +39,8 @@ HEADERS += \
     glview.h \
     problem.h \
     pointinput.h \
-    node.h
+    node.h \
+    lu_decomposition.hpp
 
 FORMS += \
         mainwindow.ui \

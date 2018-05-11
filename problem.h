@@ -37,7 +37,9 @@ private:
     bool iterationCheck();
     void abmatr();
     void solveq();
+    void solveq_lu();
     bool legs();
+    bool ludcmp();
     void reorder();
     void uinter();
     void deriv();
@@ -47,7 +49,18 @@ private:
     float dalpha(Point p1,Point p2,Point p3);
 
     int N=0,InnerN=0;
-    float initialPhiAnode=-0.1f,initialPhiCathode=0.1f,Ia=1,Ic=1,Phia=-0.5f,Phic=0.5f,Ba=0.05f,Bc=0.05f,Aa=0.05f,Ac=0.05f,C=10.0f,e=0.0001;
+    float initialPhiAnode=0.1f;
+    float initialPhiCathode=-0.1f;
+    float Ia=1;
+    float Ic=1;
+    float Phia=-0.5f;
+    float Phic=0.5f;
+    float Ba=0.05f;
+    float Bc=0.05f;
+    float Aa=0.05f;
+    float Ac=0.05f;
+    float C=10.0f;
+    float e=0.0001;
     std::vector<int> INDEX;
     std::vector<int> TYPE;
     std::vector<node> nodes;
