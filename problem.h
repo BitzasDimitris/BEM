@@ -7,6 +7,10 @@
 #include "point.h"
 #include "math.h"
 #include "node.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include "lu_decomposition.hpp"
 
 class Problem : public QObject
 {

@@ -1,8 +1,5 @@
 #include "problem.h"
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include "lu_decomposition.hpp"
+
 
 Problem::Problem(QWidget *parent)
 {
